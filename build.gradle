@@ -1,135 +1,85 @@
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
+apply plugin: 'com.github.ben-manes.versions'
+
+apply from: "gradlew/dependencies.gradle"
 buildscript {
+
+
     repositories {
-        mavenLocal() //for local testing of mockito-release-tools
+        mavenCentral()
+        google()
         jcenter()
         maven { url "https://plugins.gradle.org/m2/" }
     }
 
     dependencies {
-        classpath 'gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0'
-        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:1.2.1'
+        classpath 'com.android.tools.build:gradle:4.0.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
+        classpath 'com.google.firebase:firebase-crashlytics-gradle:2.2.0'
+        classpath 'com.google.gms:google-services:4.3.3'
+        classpath 'com.stanfy.spoon:spoon-gradle-plugin:1.2.2'
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.33.0'
+        classpath "de.mannodermaus.gradle.plugins:android-junit5:1.6.2.0"
 
-        //Using buildscript.classpath so that we can resolve shipkit from maven local, during local testing
-        classpath 'org.shipkit:shipkit:2.1.6'
+        // https://github.com/JLLeitschuh/ktlint-gradle
+        classpath "org.jlleitschuh.gradle:ktlint-gradle:9.2.1"
 
-        classpath 'com.google.googlejavaformat:google-java-format:1.8'
+        https://github.com/jmatsu/license-list-plugin
+        classpath "io.github.jmatsu:license-list-gradle:0.5.0"
+
+        classpath "org.koin:koin-gradle-plugin:$koinVersion"
     }
 }
 
-plugins {
-    id "com.diffplug.gradle.spotless" version "3.24.3"
-    id 'eclipse'
-    id 'com.github.ben-manes.versions' version '0.28.0'
-    id 'biz.aQute.bnd.builder' version '5.1.0'
-    id 'ru.vyarus.animalsniffer' version '1.5.1'
+apply plugin: 'koin'
+
+def version_code = System.getenv("VERSION_CODE") ?: "1"
+def version_name = System.getenv("VERSION_NAME") ?: "1000.${version_code}"
+
+ext.versions = [
+        compileSdk : 30,
+        buildTools : '30.0.0',
+        targetSdk  : 29,
+        minSdk     : 21,
+        versionCode: Integer.parseInt(version_code),
+        versionName: version_name
+]
+ext {
+    jacocoToolVersion = "0.8.5"
 }
 
-description = 'Mockito mock objects library core API and implementation'
 
-apply plugin: 'base'
-archivesBaseName = "mockito-core"
-
-apply plugin: "org.shipkit.java"
 allprojects {
-    plugins.withId("java") {
-        //Only upload specific modules we select
-        bintrayUpload.enabled = false
-    }
-}
-
-apply from: 'gradle/root/ide.gradle'
-apply from: 'gradle/root/gradle-fix.gradle'
-apply from: 'gradle/java-library.gradle'
-apply from: 'gradle/license.gradle'
-apply from: 'gradle/root/coverage.gradle'
-
-apply from: 'gradle/mockito-core/inline-mock.gradle'
-apply from: 'gradle/mockito-core/osgi.gradle'
-apply from: 'gradle/mockito-core/javadoc.gradle'
-apply from: 'gradle/mockito-core/testing.gradle'
-
-apply from: 'gradle/dependencies.gradle'
-
-allprojects { proj ->
     repositories {
+        google()
         jcenter()
-    }
-    plugins.withId('java') {
-        proj.apply from: "$rootDir/gradle/errorprone.gradle"
-    }
-    tasks.withType(JavaCompile) {
-        //I don't believe those warnings add value given modern IDEs
-        options.warnings = false
-        options.encoding = 'UTF-8'
-    }
-    tasks.withType(Javadoc) {
-        options.addStringOption('Xdoclint:none', '-quiet')
-        options.addStringOption('encoding', 'UTF-8')
-        options.addStringOption('charSet', 'UTF-8')
-        options.setSource('8')
-    }
-
-    tasks.withType(AbstractArchiveTask) {
-        preserveFileTimestamps = false
-        reproducibleFileOrder = true
-    }
-
-    apply plugin: 'checkstyle'
-    checkstyle {
-       configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+        maven { url 'https://adgeneration.github.io/ADG-Android-SDK/repository' }
     }
 }
 
-configurations {
-    testUtil //TODO move to separate project
-}
-
-
-animalsniffer {
-    sourceSets = [sourceSets.main]
-    annotation = 'org.mockito.internal.SuppressSignatureCheck'
-}
-
-wrapper {
-    gradleVersion = '5.3.1'
-    distributionSha256Sum = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-}
-
-spotless {
-    // We run the check separately on Travis, so don't run this by default
-    enforceCheck = false
-
-    java {
-        licenseHeaderFile rootProject.file('config/spotless/spotless.header')
-
-        customLazyGroovy('google-java-format') {
-            com.google.googlejavaformat.java.JavaFormatterOptions options = new com.google.googlejavaformat.java.JavaFormatterOptions.Builder()
-                    .style(com.google.googlejavaformat.java.JavaFormatterOptions.Style.AOSP)
-                    .formatJavadoc(false)
-                    .build()
-            com.google.googlejavaformat.java.Formatter formatter = new com.google.googlejavaformat.java.Formatter(options)
-            return { source -> formatter.formatSource(source) }
+dependencyUpdates.resolutionStrategy = {
+    componentSelection { rules ->
+        rules.all { ComponentSelection selection ->
+            boolean rejected = ['alpha', 'beta', 'rc', 'cr', 'm'].any { qualifier ->
+                selection.candidate.version ==~ /(?i).*[.-]${qualifier}[.\d-]*/
+            }
+            if (rejected) {
+                selection.reject('Release candidate')
+            }
         }
-
-        // This test contains emulation of same-line stubbings. The formatter would put them on a separate line.
-        targetExclude 'src/test/java/org/mockitousage/internal/junit/UnusedStubbingsFinderTest.java'
     }
 }
 
-
-//workaround for #1444, delete when Shipkit bug is fixed
 subprojects {
-	eclipse {
-		project {
-			name = rootProject.name + '-' + project.name
-		}
-	}
+    apply plugin: "org.jlleitschuh.gradle.ktlint"
 
-    afterEvaluate {
-        def lib = publishing.publications.javaLibrary
-        if(lib && !lib.artifactId.startsWith("mockito-")) {
-            lib.artifactId = "mockito-" + lib.artifactId
+    ktlint {
+        version = "0.36.0"
+        android = true
+        ignoreFailures = true
+
+        reporters {
+            reporter "checkstyle"
         }
     }
 }
-//end workaround
