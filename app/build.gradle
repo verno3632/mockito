@@ -1,0 +1,315 @@
+apply plugin: 'com.android.application'
+apply plugin: "io.github.jmatsu.license-list"
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'com.google.firebase.crashlytics'
+apply plugin: 'spoon'
+apply plugin: 'de.mannodermaus.android-junit5'
+apply from: rootProject.file("gradle/android-common.gradle")
+apply from: rootProject.file("gradle/android-unit-test.gradle")
+apply from: rootProject.file("gradle/jacoco-for-develop-debug.gradle")
+
+ext {
+    dexmakerVersion = '1.2'
+}
+
+android {
+    compileSdkVersion versions.compileSdk
+    buildToolsVersion versions.buildTools
+
+    buildFeatures {
+        dataBinding true
+        viewBinding true
+    }
+    signingConfigs {
+        debug {
+            storeFile rootProject.file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java', 'src-gen/main/java']
+        }
+        androidTest {
+            java.srcDirs = ['src/androidTest/java']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    dexOptions {
+        javaMaxHeapSize "2g"
+    }
+
+    defaultConfig {
+        applicationId "jp.pxv.android"
+        targetSdkVersion versions.targetSdk
+        minSdkVersion versions.minSdk
+
+        multiDexEnabled true
+
+        versionCode versions.versionCode
+        versionName versions.versionName
+
+        buildConfigField "boolean", "VERIFY_PREMIUM", "false"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        renderscriptTargetApi 20
+        renderscriptSupportModeEnabled true
+    }
+
+    flavorDimensions "environment"
+    productFlavors {
+        develop {
+            dimension "environment"
+            buildConfigField "String", "ACCOUNT_TYPE", "\"net.pixiv.develop\""
+            applicationIdSuffix '.develop'
+            resConfigs "ja", "xxhdpi"
+            firebaseCrashlytics {
+                mappingFileUploadEnabled false
+            }
+        }
+        pdgDraft {
+            dimension "environment"
+            buildConfigField "String", "ACCOUNT_TYPE", "\"net.pixiv.pgdDraft\""
+            applicationIdSuffix '.pdgDraft'
+            resConfigs "ja", "xxhdpi"
+            firebaseCrashlytics {
+                mappingFileUploadEnabled false
+            }
+        }
+        production {
+            dimension "environment"
+            buildConfigField "String", "ACCOUNT_TYPE", "\"net.pixiv\""
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            debuggable true
+            minifyEnabled false
+            firebaseCrashlytics {
+                mappingFileUploadEnabled false
+            }
+        }
+
+        release {
+            signingConfig null
+            debuggable false
+            minifyEnabled true
+            proguardFile getDefaultProguardFile('proguard-android-optimize.txt')
+            proguardFile file('proguard-project.txt')
+
+            productFlavors.develop.signingConfig signingConfigs.debug
+            productFlavors.pdgDraft.signingConfig signingConfigs.debug
+        }
+    }
+
+    packagingOptions {
+        pickFirst 'META-INF/DEPENDENCIES'
+        pickFirst 'META-INF/LICENSE'
+        pickFirst 'META-INF/NOTICE'
+        pickFirst 'META-INF/LICENSE.txt'
+        pickFirst 'LICENSE.txt'
+    }
+
+    androidExtensions {
+        features = ["parcelize"]
+    }
+}
+
+repositories {
+    maven {
+        url 'https://maven.fabric.io/public'
+    }
+    maven {
+        url "https://clojars.org/repo/"
+    }
+    maven {
+        url "https://jitpack.io"
+    }
+    mavenCentral()
+    google()
+    jcenter()
+    maven { url "https://s3.amazonaws.com/moat-sdk-builds" }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
+    implementation project(':uploadIllust')
+    implementation project(':legacy')
+    implementation project(':pixivDesignGuideline')
+    implementation project(':common')
+    implementation project(':commonDebug')
+    implementation project(':local')
+    // TODO: 作業用。後で消す
+    implementation project(':api')
+    // Kotlin
+    implementation deps.kotlin.stdlib
+    // AndroidX
+    // https://developer.android.com/jetpack/androidx/androidx-rn
+    implementation deps.androidX.core
+    implementation deps.androidX.coreKtx
+    implementation deps.androidX.archCore.runtime
+    implementation deps.androidX.appCompat
+    implementation deps.androidX.activity
+    implementation deps.androidX.fragment
+    implementation deps.androidX.design
+    implementation deps.androidX.cardView
+    implementation deps.androidX.customTabs
+    implementation deps.androidX.preference
+    implementation deps.androidX.recyclerView
+    implementation deps.androidX.multidex.core
+    implementation deps.androidX.constraintLayout
+    implementation deps.androidX.lifecycle.runtime
+    implementation deps.androidX.lifecycle.liveData
+    implementation deps.androidX.lifecycle.viewModel
+    implementation deps.androidX.lifecycle.savedState
+    implementation deps.androidX.lifecycle.commonJava8
+    implementation deps.androidX.lifecycle.process
+    implementation deps.androidX.vectorDrawable
+    implementation deps.androidX.vectorDrawableAnimated
+    implementation deps.androidX.workManager.runtime
+    implementation deps.androidX.workManager.rxjava2
+    implementation deps.billing
+    // Rx
+    implementation deps.rxjava2.core
+    implementation deps.rxjava2.android
+    implementation(deps.rxjava2.kotlin) {
+        exclude group: 'io.reactivex.rxjava2', module: 'rxjava'
+        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib'
+    }
+    // flexbox-layout
+    implementation deps.flexbox
+    implementation deps.firebase.remoteConfig
+    implementation deps.firebase.analytics
+    implementation deps.firebase.messaging
+    implementation deps.firebase.dynamicLinks
+    implementation deps.firebase.crashlytics
+    // ExpoPlayer
+    implementation deps.exoPlayer.core
+    implementation deps.exoPlayer.hls
+    implementation deps.exoPlayer.ui
+    // Retrofit
+    implementation deps.retrofit.core
+    implementation deps.retrofit.converterGson
+    implementation deps.retrofit.adapterRxJava2
+    // OkHttp
+    // https://github.com/square/okhttp/blob/master/CHANGELOG.md
+    implementation deps.okhttp.core
+    implementation deps.okhttp.urlConnection
+    implementation deps.okhttp.loggingInterceptor
+    // Glide
+    implementation deps.glide.core
+    implementation deps.glide.okhttp
+    implementation deps.glide_transformations
+    implementation 'com.caverock:androidsvg-aar:1.3'
+    // Lightweight Stream API
+    implementation 'com.annimon:stream:1.2.1'
+    implementation 'com.github.chrisbanes:PhotoView:2.1.3'
+    implementation 'com.edmodo:cropper:1.0.1'
+    implementation deps.eventBus
+    implementation 'org.greenrobot:greendao:2.2.0'
+    implementation deps.threeTenAbp
+    implementation deps.viewBindingKtx
+
+    // PermissionDispatcher
+    implementation deps.permissionDispatcher.core
+    kapt deps.permissionDispatcher.apt
+
+    // LeakCanary
+    debugImplementation deps.leakCanary.noOp
+    releaseImplementation deps.leakCanary.noOp
+    // Optional, if you use support library fragments:
+    // TODO: LeakCnanaryを再度使うようにするときは、下のコメントアウトしているライブラリも使うようにする
+    // debugImplementation deps.leakCanary.supportFragment
+    // https://github.com/afollestad/material-dialogs/releases
+    implementation('com.afollestad.material-dialogs:core:0.9.4.7') {
+        exclude module: 'support-annotations'
+        exclude module: 'support-v4'
+        exclude module: 'support-v13'
+        exclude module: 'recyclerview-v7'
+        exclude module: 'appcompat-v7'
+    }
+    implementation 'com.facebook.network.connectionclass:connectionclass:1.0.1'
+    implementation 'jp.wasabeef:recyclerview-animators:2.3.0'
+    kapt "com.github.bumptech.glide:compiler:${glideVersion}"
+    implementation deps.timber
+    // DI
+    implementation deps.koin.core
+    implementation deps.koin.android
+    implementation deps.koin.viewmodel
+
+    // ads
+    // com.mopub.mediation:admob で利用
+    // https://developers.google.com/admob/android/quick-start#import_the_mobile_ads_sdk
+    implementation deps.ads.playServicesAds
+    implementation deps.ads.adGeneration
+    implementation(deps.ads.mopub.banner) {
+        transitive = true
+    }
+    implementation(deps.ads.mopub.native) {
+        transitive = true
+    }
+    implementation deps.ads.mopub.mediation.admob
+    implementation deps.ads.tam
+    implementation deps.ads.line
+
+    // hyperion
+    debugImplementation deps.hyperion.core
+    debugImplementation deps.hyperion.attr
+    debugImplementation deps.hyperion.buildConfig
+    debugImplementation deps.hyperion.crash
+    debugImplementation deps.hyperion.disk
+    debugImplementation deps.hyperion.geigerCounter
+    debugImplementation deps.hyperion.measurement
+    debugImplementation deps.hyperion.phoenix
+    debugImplementation deps.hyperion.recorder
+    debugImplementation deps.hyperion.sharedPreferences
+    debugImplementation deps.hyperion.timber
+    debugImplementation deps.hyperionAppInfo
+
+    // test
+    androidTestImplementation deps.junit
+    androidTestImplementation deps.mockito.android
+
+    testImplementation deps.androidX.archCore.testing
+    testImplementation deps.koin.test
+    testImplementation('org.threeten:threetenbp:1.3.6') {
+        exclude group: 'com.jakewharton.threetenabp', module: 'threetenabp'
+    }
+    debugImplementation deps.flipper.core
+    debugImplementation deps.flipper.network
+    debugImplementation deps.flipper.soloader
+
+    androidTestImplementation deps.androidX.archCore.testing
+    androidTestImplementation deps.androidX.annotations
+    androidTestImplementation deps.androidX.test.espresso
+    androidTestImplementation deps.androidX.test.runner
+    androidTestImplementation deps.androidX.test.rules
+    androidTestImplementation deps.androidX.test.junit
+    androidTestImplementation deps.androidX.multidex.instrumentation
+    androidTestImplementation deps.spoon
+}
+
+apply from: rootProject.file("gradle/licenselist.gradle")
+
+spoon {
+    // To grant permissions to Android M >= devices */
+    grantAllPermissions = true
+}
+
+apply plugin: 'com.google.gms.google-services'

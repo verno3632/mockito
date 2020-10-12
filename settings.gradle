@@ -1,0 +1,35 @@
+include ':app', ':daogenerator', ':DTBAndroidSDK-8.0.0'
+
+def modulesRootDir = new File('modules')
+
+include ':legacy'
+project(':legacy').projectDir = new File(modulesRootDir, 'legacy')
+
+include ':pixivDesignGuideline'
+project(':pixivDesignGuideline').projectDir = new File(modulesRootDir, 'pixivDesignGuideline')
+
+include ':common'
+project(':common').projectDir = new File(modulesRootDir, 'common')
+
+include ':testUtil'
+project(':testUtil').projectDir = new File(modulesRootDir, 'testUtil')
+
+include ':commonObjects'
+project(':commonObjects').projectDir = new File(modulesRootDir, 'commonObjects')
+
+include ':api'
+project(':api').projectDir = new File(modulesRootDir, 'api')
+
+include ':local'
+project(':local').projectDir = new File(modulesRootDir, 'local')
+
+include ':domain'
+project(':domain').projectDir = new File(modulesRootDir, 'domain')
+
+include ':commonDebug'
+project(':commonDebug').projectDir = new File(modulesRootDir, 'commonDebug')
+
+def featureModuleRootDir = new File(modulesRootDir, 'feature')
+
+include ':uploadIllust'
+project(':uploadIllust').projectDir = new File(featureModuleRootDir, 'uploadIllust')
