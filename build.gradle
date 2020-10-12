@@ -12,7 +12,7 @@ buildscript {
         //Using buildscript.classpath so that we can resolve shipkit from maven local, during local testing
         classpath 'org.shipkit:shipkit:2.1.6'
 
-        classpath 'com.google.googlejavaformat:google-java-format:1.8'
+        classpath 'com.google.googlejavaformat:google-java-format:1.9'
     }
 }
 
