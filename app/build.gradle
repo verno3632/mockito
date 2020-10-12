@@ -148,23 +148,9 @@ repositories {
 }
 
 dependencies {
-    compile libraries.bytebuddy, libraries.bytebuddyagent
-
-    compileOnly libraries.junit4, libraries.hamcrest, libraries.opentest4j
-    compile libraries.objenesis3
 
     testCompile libraries.asm
 
-    testCompile libraries.assertj
-
-    //putting 'provided' dependencies on test compile and runtime classpath
-    testCompileOnly configurations.compileOnly
-    testRuntime configurations.compileOnly
-
-    testUtil sourceSets.test.output
-
-    signature 'org.codehaus.mojo.signature:java18:1.0@signature'
-    signature 'net.sf.androidscents.signature:android-api-level-24:7.0_r2@signature'
 }
 
 
