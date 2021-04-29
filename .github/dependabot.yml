@@ -1,0 +1,26 @@
+version: 2
+updates:
+- package-ecosystem: gradle
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  target-branch: release/3.x
+  ignore:
+  - dependency-name: com.google.firebase:firebase-crashlytics-gradle
+    versions:
+    - 2.4.1
+    - 2.5.0
+    - 2.5.1
+  - dependency-name: com.android.tools.build:gradle
+    versions:
+    - 4.1.2
+  - dependency-name: junit:junit
+    versions:
+    - 4.13.1
+  - dependency-name: com.google.auto.service:auto-service
+    versions:
+    - 1.0-rc7
+  - dependency-name: org.jlleitschuh.gradle:ktlint-gradle
+    versions:
+    - 9.4.1
